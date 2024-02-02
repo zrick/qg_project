@@ -220,10 +220,10 @@ class INTEGRATOR:
         return(x) 
 
 
-class CFQG:
+class QG_MODEL:
     status = 0
 
-    def __init__(self,ini_file='cfqg.ini'):
+    def __init__(self,ini_file='qg.ini'):
         with open(ini_file) as nml_file:
             self.nml = f90nml.read(nml_file)
 

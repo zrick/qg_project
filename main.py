@@ -1,10 +1,10 @@
 import numpy as np 
-from cfqg import CFQG,INTEGRATOR,GRID
+from qg import QG_MODEL,INTEGRATOR,GRID
 
 
 def main():
     
-    m = CFQG()                           # initialize the model class
+    m = QG_MODEL()                       # initialize the model class
     m.initialize()                       # initialize the simulation 
 
     integrator = INTEGRATOR(m)           # initialize time integration
