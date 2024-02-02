@@ -1,0 +1,91 @@
+\documentclass[jobname=project, 10pt]{article}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage[margin=1in, top=2in, bottom=1.25in, headheight=3cm, a4paper]{geometry}
+\usepackage{enumitem}
+\usepackage[scriptsize]{caption}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{tikz}
+\usetikzlibrary{patterns}
+
+% DERIVATIVE OPERATORS 
+\newcommand{\D}{D}              % upper-case 'D" for total derivative 
+\newcommand{\p}{\partial}       % round 'del'  for partial differentiation
+\renewcommand{\d}{\mathrm{d}}   % roman d for integrals
+\renewcommand{\vec}[1]{\mathbf{#1}}
+% italic d is d (no command)    % regular differentiation of scalar function 
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\includegraphics[width=5cm]{fu_logo_web.png}}  % Logo à gauche
+\fancyhead[C]{Numerics practical}  % Au milieu
+\fancyhead[R]{\shortstack{Theoretical Meteorology I \\ Cedrick Ansorge \& Sally Issa \\ \today}}  % Auteur sur une ligne, date sur une ligne
+\renewcommand{\headrulewidth}{0.4pt}  % Ligne horizontale
+\newcommand{\task}[2]{\section{#1 \hfill \normalsize\normalfont \textcolor{gray}{#2\,P}}\addtocounter{ptot}{#2}}
+\newcommand{\hint}[1]{
+  \phantom{AA}~\\[1.0em]
+  \colorbox{gray!30}{
+    \begin{minipage}{.92\textwidth}
+      \vspace{-1em}\centering{\fcolorbox{black}{white}{\emph{Hint for solution}}} 
+      {\footnotesize #1}
+    \end{minipage} 
+  }
+}
+\newcounter{ptot}
+\setlength{\parskip}{0em}
+\begin{document}
+~\\[-3em]
+\phantom{AA}\hfill \textcolor{red}{\textbf{Discussion Feb 16$^\mathrm{th}$, 4pm (neuer H\"orsaal)}} \\
+This practical gives a practical perspective on some aspects of the quasi-geostrophic approximation.
+We will use the Quasi-geostrophic barotropic vorticity with and without a forcing and the two-layer model
+to reflect on some of the theoretical findings derived during the semester.
+%
+\par
+% 
+We devote the final exercise on Feb 16$^{th}$ to a discussion of your results. Please hand in your code and a small expos\'e consisting of some figures showing results from the model prior to this discussion. We expect a brief discussion / presentation of the expos\'e during this exercise. 
+
+\task{Preliminaries - model infrastructure}{5}
+
+You can use the model infrastructure provided for python that is provided on the whiteboard. (Alternatively, you may develop an infrastructure with similar capabilities in a programming/scripting language of your choice.) \\ 
+
+\noindent\textbf{Make sure you understand the following aspects before you get started to implement any other aspect of this assignment:}
+\begin{itemize}
+\item How is the model controlled (how does it learn about its input / parameters / configurations?) ?
+\item Which classes exist and what is there purpose?
+  \begin{enumerate}
+    \setlength{\itemsep}{1.5em}
+  \item \underline{\phantom{CFQGCFQGCFQGCFQG}} -- \underline{\phantom{CFQGCFQGCFQGCFQG}}
+  \item \underline{\phantom{CFQGCFQGCFQGCFQG}} -- \underline{\phantom{CFQGCFQGCFQGCFQG}}
+  \item \underline{\phantom{CFQGCFQGCFQGCFQG}} -- \underline{\phantom{CFQGCFQGCFQGCFQG}}
+  \item \underline{\phantom{CFQGCFQGCFQGCFQG}} -- \underline{\phantom{CFQGCFQGCFQGCFQG}}
+  \end{enumerate}
+\item What time integration scheme is used? In wich class and routine is it implemented? 
+  \begin{itemize} 
+    \setlength{\itemsep}{1.5em}
+  \item[Scheme] \underline{\hspace{6cm}}
+  \item[Class]  \underline{\hspace{6cm}}
+  \item[Routine] \underline{\hspace{6cm}}
+  \end{itemize}
+    
+  
+\item What kind of output is generated to the following streams/files 
+  \begin{itemize}
+    \setlength{\itemsep}{1.5em}
+
+  \item[stdout] \underline{\hspace{6cm}}
+  \item[*.log] \underline{\hspace{6cm}} 
+  \item[*.iter] \underline{\hspace{6cm}}
+  \item[*.nc] \underline{\hspace{6cm}} 
+  \end{itemize}
+\end{itemize} 
+
+\task{Rossby waves}{15}
+
+\task{Two-layer model}{20} 
+
+\end{document}
