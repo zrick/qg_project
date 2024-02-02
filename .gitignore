@@ -1,3 +1,4 @@
 *.iter
 *.log
 __pycache__
+*~
