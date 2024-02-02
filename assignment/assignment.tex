@@ -49,7 +49,7 @@ to reflect on some of the theoretical findings derived during the semester.
 % 
 We devote the final exercise on Feb 16$^{th}$ to a discussion of your results. Please hand in your code and a small expos\'e consisting of some figures showing results from the model prior to this discussion. We expect a brief discussion / presentation of the expos\'e during this exercise. 
 
-\task{Preliminaries - model infrastructure}{5}
+\task{Preliminaries - model infrastructure}{3}
 
 You can use the model infrastructure provided for python that is provided on the whiteboard. (Alternatively, you may develop an infrastructure with similar capabilities in a programming/scripting language of your choice.) \\ 
 
@@ -72,7 +72,6 @@ You can use the model infrastructure provided for python that is provided on the
   \item[Routine] \underline{\hspace{6cm}}
   \end{itemize}
     
-  
 \item What kind of output is generated to the following streams/files 
   \begin{itemize}
     \setlength{\itemsep}{1.5em}
@@ -82,9 +81,23 @@ You can use the model infrastructure provided for python that is provided on the
   \item[*.iter] \underline{\hspace{6cm}}
   \item[*.nc] \underline{\hspace{6cm}} 
   \end{itemize}
+
 \end{itemize} 
 
+\task{Time integration}{3} 
+Check the time integration scheme implemented in the class \texttt{INTEGRATOR}. Setting \texttt{rhs} \footnote{Note that with \texttt{rhs}, we are passing a function as argument, i.e. we are using the concept of function pointers} to \texttt{exponential} (a member of the class \texttt{integrator}) evaluates to the input, i.e. we solve the equation
+\[\frac{d x}{d t} = x \Rightarrow \tilde{x}(t) = \frac{x_0}{e^{t_0}} e^t. \]
+
+\begin{enumerate}[label=\alph*)]
+\item What is the expected result  for $t_0=0$ and $x_0=1$ when integrating up to $t=2$? Check for $\Delta t=1$!
+\item Varying the time step $\tau$ of the integration, check the order of the time integration scheme
+  and produce a log-log plot of the error $x_{num} - \tilde{x}$ as a function of $\tau$.
+\item What is the order of the numerical error for the time integration scheme used?
+\item Why does the numerical error reach a limit as $\tau \rightarrow 0$? 
+\end{enumerate}
+
 \task{Rossby waves}{15}
+
 
 \task{Two-layer model}{20} 
 

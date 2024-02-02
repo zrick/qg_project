@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 from utils import get_long_time, get_short_time, poisson,der_x,der_y
-
+from qg_io import QG_IO 
 RTYPE=np.float64
 ITYPE=np.int32
 
@@ -12,9 +12,6 @@ DAY_LENGTH  =RTYPE(86400.)     # in units of [s]
 EPSILON     =RTYPE(1e-12) 
 PI          =RTYPE(np.pi)
 PI2         =2*PI 
-
-
-
 
 class GRID:
     def __init__(self,nx,ny,lx=RTYPE(1.),ly=RTYPE(1.)):
