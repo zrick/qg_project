@@ -138,10 +138,12 @@ class INTEGRATOR:
         m.log_iteration(header=True)
         m.log_line('Starting time integration at time {} '.format(m.rtime))
 
-        plt.imshow(self.model.data.zeta.transpose())
-        plt.colorbar()
-        plt.show()
+        #plt.imshow(self.model.data.zeta.transpose())
+        #plt.colorbar()
+        #plt.show()
         # plt.close('all') 
+
+        m.io.dump_it(m.itime,m.rtime,m.data.zeta) 
         
         while( m.rtime < m.end_time - EPSILON ):
             
@@ -156,10 +158,7 @@ class INTEGRATOR:
 
             if m.itime % m.iteralog == 0:
                 m.log_iteration()
-                plt.imshow(self.model.data.zeta.transpose())
-                plt.colorbar()
-                plt.show()
-                plt.close('all') 
+                m.io.dump_it(m.itime,m.rtime,m.data.zeta)
 
             # determine time-lapse for next step (step zero is done above) 
             self.dtime = self.time_courant()
@@ -167,7 +166,7 @@ class INTEGRATOR:
         # log last iteration if not done yet 
         if m.itime % m.iteralog != 0:
             m.log_iteration()
-            
+            m.io.dump_it(m.itime,m.rtime,m.data.zeta) 
         m.log_line('Reached end time {} ({} days)'.format(m.rtime,m.rtime/DAY_LENGTH))
         m.log_line('Final dt={}'.format(self.dtime))
         m.log_line('Finished time integration in {} iterations'.format(m.itime))
@@ -373,6 +372,10 @@ class QG_MODEL:
             self.data.zeta[:,:] = np.float64(0.)
         self.log_line('Model initialization finished for mode {}'.format(md))
         self.log_line('---')
+
+        filename='{}.nc'.format(md) 
+        self.io = QG_IO(filename,self.g)
+        self.io.initialize() 
         
     def finalize(self,mode):
         self.log_line('---')
