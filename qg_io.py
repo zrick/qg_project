@@ -7,7 +7,8 @@ class QG_IO:
         self.g=grid
         self.niter=0 
 
-    def initialize(self):
+    def initialize(self,mode):
+        print('INITIALIZING DATASET',self.fname) 
         self.f_h = Dataset(self.fname,'w')
         f=self.f_h
         g=self.g
@@ -35,16 +36,33 @@ class QG_IO:
         vit=f.createVariable('it','f','t')
         vit.long_name='iteration'
         vit.standard_name='it'
-        vit.units='1' 
-
-        vzeta=f.createVariable('zeta','f',('t','x','y',))
+        vit.units='1'
         
+        if mode == 'rossby' or mode == 'exponential' :
+            vzeta=f.createVariable('zeta','f',('t','x','y',))
+        elif mode == 'two_layer':
+
+            f.createDimension('z',2)
+            vz = f.createVariable('z','f',('z',))
+            vz.long_name='height [in p-system]'
+            vz.standard_name='z'
+            vz.units='hPa'
+            f.variables['z'][:] = [250,750] 
+
+            vzeta=f.createVariable('zeta','f',('t','z','x','y',))
+        vzeta.long_name='Vorticity'
+        vzeta.standard_name='zeta'
+        vzeta.units='s^{-1}'
+        
+
+        return 
+            
     def dump_it(self,it,t,data):
         f=self.f_h
         i=self.niter
         f.variables['t'][i] = t
         f.variables['it'][i] = it
-        f.variables['zeta'][i,:,:] = data 
+        f.variables['zeta'][i] = data 
         
         self.niter += 1 
         

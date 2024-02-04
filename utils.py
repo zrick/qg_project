@@ -19,7 +19,6 @@ def get_short_time() :
     return '[{}] '.format(datetime.utcnow().strftime("%H:%M:%S.%f")[:-3])
 
 def laplacian2D(g,x,wrk):
-    print(np.amin(x),np.amax(x))
 
     wrk[0,:] =     (x[1,:]  +x[g.nx-1,:] -2*x[0,:])*g.dx2norm 
     for i in range(1,g.nx-1):
@@ -30,7 +29,6 @@ def laplacian2D(g,x,wrk):
     for j in range(1,g.ny-1):
         wrk[:,j] += (x[:,j+1] +x[:,j-1]    -2*x[:,j] )    *g.dy2norm
     wrk[:,g.ny-1]+= (x[:,0]   +x[:,g.ny-2] -2*x[:,g.ny-1])*g.dy2norm 
-    print(np.amin(wrk),np.amax(wrk))
         
     return wrk
 

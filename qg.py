@@ -53,14 +53,21 @@ class GRID:
 
 class DATA:
     def __init__(self,grid,mode):
-        if mode.lower() == 'rossby': 
+        if mode == 'rossby': 
             self.zeta=np.zeros([grid.nx,grid.ny],dtype=RTYPE) 
             self.dzeta=np.zeros([grid.nx,grid.ny],dtype=RTYPE)
             self.wrk=np.zeros([grid.nx,grid.ny,4],dtype=RTYPE)
-            self.c_wrk=np.zeros([grid.nx,int(grid.ny/2)+1],dtype=np.complex64) 
-        if mode.lower() == 'exponential':
+            self.c_wrk=np.zeros([grid.nx,int(grid.ny/2)+1],dtype=np.complex64)
+
+        if mode =='two_layer':
+            self.zeta=np.zeros([2,grid.nx,grid.ny],dtype=RTYPE) 
+            self.dzeta=np.zeros([2,grid.nx,grid.ny],dtype=RTYPE)
+            self.wrk=np.zeros([grid.nx,grid.ny,4],dtype=RTYPE)
+            self.c_wrk=np.zeros([grid.nx,int(grid.ny/2)+1],dtype=np.complex64)
+            
+        if mode == 'exponential':
             self.zeta=np.zeros([grid.nx,grid.ny],dtype=RTYPE)
-            self.dzeta=np.zeros([grid.nx,grid.ny],dtype=RTYPE) 
+            self.dzeta=np.zeros([grid.nx,grid.ny],dtype=RTYPE)  
         return 
         
 class INTEGRATOR:
@@ -108,7 +115,7 @@ class INTEGRATOR:
         else:
             g=m.g
             CFL=-m.step_time
-            d_eff = np.amin([g.dx/self.umax,g.dy/self.vmax])
+            d_eff = np.amin([g.dx/m.umax,g.dy/m.vmax])
             m.dtime=CFL*d_eff
 
         if m.dtime < 0:
@@ -124,13 +131,16 @@ class INTEGRATOR:
         end=m.end_time
 
         if mode == 'exponential':
-            rhs = self.exponential
+            rhs = m.exponential
         elif mode == 'rossby':
-            rhs = self.rossby
+            rhs = m.rossby
+        elif mode == 'two_layer':
+            rhs = m.two_layer
             # make an init call to calculate u and psi for estimation of the initial time step
-            rhs(m.g,m.data.zeta,m.data.dzeta)
         else:
             quit()
+
+        rhs(m.g,m.data.zeta,m.data.dzeta)
 
         #initialize the time step 
         self.dtime = self.time_courant()
@@ -171,46 +181,80 @@ class INTEGRATOR:
         m.log_line('Final dt={}'.format(self.dtime))
         m.log_line('Finished time integration in {} iterations'.format(m.itime))
         
+class QG_MODEL:
+    status = 0
+
+    def __init__(self,ini_file='qg.ini'):
+        with open(ini_file) as nml_file:
+            self.nml = f90nml.read(nml_file)
+    def two_layer(self,g,zeta,out):
+        # tendency terms are *added* to out
+        d=self.data
+        psi = d.wrk[:,:,0]
+        u =   d.wrk[:,:,1]
+        v =   d.wrk[:,:,2]
+        wrk1= d.wrk[:,:,3]
+        c_wrk=d.c_wrk
+
+
+        # calculate stream-function and velocity
+        self.umax = -1
+        self.vmax = -1
+        for ilev in [0,1]: 
+            psi = poisson(g,zeta[ilev,:,:],psi[:,:],c_wrk)
+
+            # advection terms + beta-effect
+            u= der_y(g,psi,u); u=-u                                  # u=-dpsi/dy
+            out[ilev,:,:] = out[ilev,:,:] -(u+self.Um)*der_x(g,zeta[ilev,:,:],wrk1)       # -(u'+Um)(dzeta'/dx)
+            v= der_x(g,psi,v)                                        # v= dpsi/dx 
+            out[ilev,:,:] = out[ilev,:,:] -v[:,:]*     der_y(g,zeta[ilev,:,:],wrk1) # - v' (dzeta'/dy) 
+            out[ilev,:,:] = out[ilev,:,:] - self.beta*v                                  # -beta * v'
+            # save maximum of u and v for Courant-Friedrichs-Levy (CFL) criterion
+            self.umax = np.amax([self.umax,np.abs(np.amax(u+self.Um))]) 
+            self.vmax = np.amax([self.vmax,np.abs(np.amax(v) )]) 
+        
+        return out  
+
     def rossby(self,g,zeta,out):
         # tendency terms are *added* to out
-        
-        psi = self.model.data.wrk[:,:,0]
-        u =   self.model.data.wrk[:,:,1]
-        v =   self.model.data.wrk[:,:,2]
-        wrk1= self.model.data.wrk[:,:,3]
-        c_wrk=self.model.data.c_wrk
+        d=self.data
+        psi = d.wrk[:,:,0]
+        u =   d.wrk[:,:,1]
+        v =   d.wrk[:,:,2]
+        wrk1= d.wrk[:,:,3]
+        c_wrk=d.c_wrk
 
         # calculate stream-function and velocity 
         psi = poisson(g,zeta,psi,c_wrk)
 
         # advection terms + beta-effect
-        u= der_y(g,psi,u); u=-u   # u=-dpsi/dy
-        out[:,:] = out     -(u+self.model.Um)*der_x(g,zeta,wrk1) # -(u'+Um)(dzeta'/dx)
-        v= der_x(g,psi,v)         # v= dpsi/dx 
+        u= der_y(g,psi,u); u=-u                                  # u=-dpsi/dy
+        out[:,:] = out     -(u+self.Um)*der_x(g,zeta,wrk1)       # -(u'+Um)(dzeta'/dx)
+        v= der_x(g,psi,v)                                        # v= dpsi/dx 
         out[:,:] = out[:,:]-v[:,:]*           der_y(g,zeta,wrk1) # - v' (dzeta'/dy) 
-        out = out - self.model.beta*v                            # -beta * v'
+        out = out - self.beta*v                                  # -beta * v'
 
         # forcing
-        if self.model.forc_type == 'none':
+        if self.forc_type == 'none':
             out = out # nothing to do
-        elif self.model.forc_type == 'topography':
+        elif self.forc_type == 'topography':
             # topographic forcing
             nx = g.nx
-            xref = self.model.g.x[int(nx/2)] 
+            xref = self.g.x[int(nx/2)] 
             for i in range(nx): 
                 relarg = (20.*(g.x[i] - xref)/g.lx)**2
                 wrk1[i,:] = np.exp(-1./(1-relarg)) if relarg < 1. else 0.
-            out = out + (self.model.forc_strength*self.model.zeta0)*wrk1
+            out = out + (self.forc_strength*self.model.zeta0)*wrk1
             out = out - 1e-6*zeta 
         else :
-            msg='ERROR: Forcing type \'{}\' not implemented'.format(self.model.forc_type)
+            msg='ERROR: Forcing type \'{}\' not implemented'.format(self.forc_type)
             print(msg)
-            self.model.log_line(msg)
+            self.log_line(msg)
             quit() 
         
         
         # save maximum of u and v for Courant-Friedrichs-Levy (CFL) criterion
-        self.umax = np.amax(u+self.model.Um)
+        self.umax = np.amax(u+self.Um)
         self.vmax = np.amax(v) 
         
         return out  
@@ -218,13 +262,6 @@ class INTEGRATOR:
     def exponential(self,g,x,dummy=None):
         return(x) 
 
-
-class QG_MODEL:
-    status = 0
-
-    def __init__(self,ini_file='qg.ini'):
-        with open(ini_file) as nml_file:
-            self.nml = f90nml.read(nml_file)
 
     def line_to_file(self,line,f_h,t_format='short') :
         if t_format == 'short': 
@@ -257,10 +294,15 @@ class QG_MODEL:
         # calculate position of first maximum (indicates phase speed)
         imin=-1
         imax=-1
+        if len(d.zeta.shape) == 2:
+            z_loc = d.zeta
+        elif len(d.zeta.shape ) == 3:
+            z_loc = d.zeta[0,:,:]
+            
         if self.g.nx > 1: 
             j = int(RTYPE(self.g.ny)/3.)
             i=0
-            while ( d.zeta[i+1,j] > d.zeta[i,j] and i<self.g.nxm):
+            while ( z_loc[i+1,j] > z_loc[i,j] and i<self.g.nxm):
                 i+=1
             if i == self.g.nx-1:
                 imax=-1
@@ -268,7 +310,7 @@ class QG_MODEL:
                 imax=i
 
             i=0
-            while ( d.zeta[i+1,j] < d.zeta[i,j] and i<self.g.nxm):
+            while ( z_loc[i+1,j] < z_loc[i,j] and i<self.g.nxm):
                 i+=1
             if i == self.g.nx-1:
                 imin=-1
@@ -282,6 +324,35 @@ class QG_MODEL:
 
         self.iter_line('{0:8d} {1:8.3g} {2:8.3g} {3:9.3g} {4:9.3g} {5:9.3g} {6:8.3g} {7:4d} {8:4d}'.format(self.itime,day_tim,self.dtime,var_avg,var_min,var_max,var_std,imin,imax))
 
+    def init_array(self,itype,kx,ky,g,arr):
+        md=self.mode 
+        self.log_line('Initialization mode: {} -- initializing 2D arrays'.format(md))
+        [nx,ny]=[g.nx,g.ny]
+        
+        if itype.lower() == 'harmonic' :
+            for i in range(g.nx):
+                if self.kx != 0: 
+                    arr[i,:]*= np.cos(PI2*kx*g.x[i]/self.lx)
+                if self.ky != 0:
+                    arr[i,:]*= np.sin(PI2*ky*g.y/self.ly)
+        elif itype.lower() == 'singular' :
+            [xr,yr] = [g.x[int(nx/2)], g.y[int(ny/2)]];
+            for i in range(g.nx):
+                relarg = (kx/g.lx * (g.x[i]-xr))**2
+                v = np.exp(-1./(1-relarg),dtype=RTYPE) if relarg < 1. else 0.
+                arr[i,:] *= v
+            for j in range(g.ny):
+                relarg = (ky/g.ly * (g.y[j]-yr))**2 
+                v = np.exp(-1./(1-relarg),dtype=RTYPE) if relarg < 1. else 0. 
+                arr[:,j] *= v
+        elif itype.lower() == 'random' :
+            arr[:,:] *= (np.random.rand(nx,ny)-0.5)
+        elif itype.lower() == 'none':
+            arr[:,:] = np.float64(0.)
+        self.log_line('Model initialization finished for mode {}'.format(md))
+        self.log_line('---')
+
+        
     def initialize(self):
         self.mode = self.nl_parameter('Main','mode','rossby').lower()
         md=self.mode
@@ -308,7 +379,7 @@ class QG_MODEL:
         self.ky=RTYPE(self.nl_parameter(md,'kglob_y','0'))
         self.zeta0=RTYPE(self.nl_parameter(md,'zeta0','1e-5'))
         self.end_time=RTYPE(self.nl_parameter(md,'End',10))
-        if md == 'rossby': 
+        if md == 'rossby' or md =='two_layer':
             self.phi0=RTYPE(self.nl_parameter(md,'phi0','45'))/180*PI
             self.Um =RTYPE(self.nl_parameter(md,'Um','1'))
 
@@ -324,17 +395,19 @@ class QG_MODEL:
             self.forc_type = self.nl_parameter(md,'forc_type','none')
             if self.forc_type != 'none':
                 self.forc_strength = self.nl_parameter(md,'forc_strength','0.01') 
-            
+            if md == 'two_layer': 
+                self.phase=RTYPE(self.nl_parameter(md,'phase',0))/180*PI 
         elif md == 'exponential':
             self.end_time=RTYPE(self.nl_parameter(md,'End',10)) 
             self.lx=1.
             self.ly=1. 
             self.data=DATA(self.g,md)
             self.zeta0=RTYPE(self.nl_parameter(md,'zeta0','1') )
-            
         else :
-            self.log_line('ERROR - unsupported mode')
-            self.finalize() 
+            err='QG ERROR: unsupported mode'
+            print(err) 
+            self.log_line(err)
+            self.finalize(md) 
 
         self.g=GRID(nx,ny,self.lx,self.ly)
         self.log_line('Initialized grid {}x{}'.format(self.g.nx,self.g.ny))
@@ -346,36 +419,16 @@ class QG_MODEL:
         
         self.data.zeta[:,:] = self.zeta0 
 
-
         itype = self.nl_parameter(md,'ini_type','harmonic')
-        self.log_line('Initialization mode: {}'.format(md))
-        if itype.lower() == 'harmonic' :
-            for i in range(g.nx):
-                if self.kx != 0: 
-                    self.data.zeta[i,:]*= np.cos(PI2*self.kx*g.x[i]/self.lx)
-                if self.ky != 0:
-                    self.data.zeta[i,:]*= np.sin(PI2*self.ky*g.y/self.ly)
-        elif itype.lower() == 'singular' :
-            [xr,yr] = [g.x[int(nx/2)], g.y[int(ny/2)]];
-            for i in range(g.nx):
-                relarg = (self.kx/self.lx * (g.x[i]-xr))**2
-                v = np.exp(-1./(1-relarg),dtype=RTYPE) if relarg < 1. else 0.
-                self.data.zeta[i,:] *= v
-
-            for j in range(g.ny):
-                relarg = (self.ky/self.ly * (g.y[j]-yr))**2 
-                v = np.exp(-1./(1-relarg),dtype=RTYPE) if relarg < 1. else 0. 
-                self.data.zeta[:,j] *= v
-        elif itype.lower() == 'random' :
-            self.data.zeta[:,:] *= (np.random.rand(nx,ny)-0.5)
-        elif itype.lower() == 'none':
-            self.data.zeta[:,:] = np.float64(0.)
-        self.log_line('Model initialization finished for mode {}'.format(md))
-        self.log_line('---')
+        if md == 'rossby': 
+            self.init_array(itype,self.kx,self.ky,self.g,self.data.zeta)
+        elif md == 'two_layer':
+            self.init_array(itype,self.kx,self.ky,self.g,self.data.zeta[0,:,:] )
+            self.init_array(itype,self.kx,self.ky,self.g,self.data.zeta[1,:,:] )
 
         filename='{}.nc'.format(md) 
         self.io = QG_IO(filename,self.g)
-        self.io.initialize() 
+        self.io.initialize(md)
         
     def finalize(self,mode):
         self.log_line('---')
