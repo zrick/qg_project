@@ -5,8 +5,7 @@ class QG_IO:
     def __init__(self,fname,grid):
         self.fname=fname
         self.g=grid
-        self.niter=0 
-
+        self.niter=0
     def initialize(self,mode):
         print('INITIALIZING DATASET',self.fname) 
         self.f_h = Dataset(self.fname,'w')

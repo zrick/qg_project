@@ -41,7 +41,7 @@
 \begin{document}
 ~\\[-3em]
 \phantom{AA}\hfill \textcolor{red}{\textbf{Discussion Feb 16$^\mathrm{th}$, 4pm (neuer H\"orsaal)}} \\
-This practical gives a practical perspective on some aspects of the quasi-geostrophic approximation.
+This practical gives a numerical perspective on some aspects of the quasi-geostrophic approximation.
 We will use the Quasi-geostrophic barotropic vorticity with and without a forcing and the two-layer model
 to reflect on some of the theoretical findings derived during the semester.
 %
@@ -49,11 +49,11 @@ to reflect on some of the theoretical findings derived during the semester.
 % 
 We devote the final exercise on Feb 16$^{th}$ to a discussion of your results. Please hand in your code and a small expos\'e consisting of some figures showing results from the model prior to this discussion. We expect a brief discussion / presentation of the expos\'e during this exercise. 
 
-\task{Preliminaries - model infrastructure}{3}
+\task{Preliminaries - model infrastructure}{4}
 
 You can use the model infrastructure provided for python that is provided on the whiteboard. (Alternatively, you may develop an infrastructure with similar capabilities in a programming/scripting language of your choice.) \\ 
 
-\noindent\textbf{Make sure you understand the following aspects before you get started to implement any other aspect of this assignment:}
+\noindent\textbf{Make sure you understand the following aspects before you get started to implement any other task of this assignment:}
 \begin{itemize}
 \item How is the model controlled (how does it learn about its input / parameters / configurations?) ?
 \item Which classes exist and what is there purpose?
@@ -84,7 +84,7 @@ You can use the model infrastructure provided for python that is provided on the
 
 \end{itemize} 
 
-\task{Time integration}{3} 
+\task{Time integration}{4} 
 Check the time integration scheme implemented in the class \texttt{INTEGRATOR}. Setting \texttt{rhs} \footnote{Note that with \texttt{rhs}, we are passing a function as argument, i.e. we are using the concept of function pointers} to \texttt{exponential} (a member of the class \texttt{integrator}) evaluates to the input, i.e. we solve the equation
 \[\frac{d x}{d t} = x \Rightarrow \tilde{x}(t) = \frac{x_0}{e^{t_0}} e^t. \]
 
@@ -96,7 +96,7 @@ Check the time integration scheme implemented in the class \texttt{INTEGRATOR}. 
 \item Why does the numerical error reach a limit as $\tau \rightarrow 0$? 
 \end{enumerate}
 
-\task{Rossby waves}{15}
+\task{Rossby waves}{14}
 For this task, you need to use the \texttt{rhs} dummy routine \texttt{rossby} and the section \texttt{Rossby} in \texttt{qg.ini}
 \begin{enumerate}[label=\alph*)]
 \item Implement the barotropic vorticity equation
@@ -110,11 +110,26 @@ For this task, you need to use the \texttt{rhs} dummy routine \texttt{rossby} an
   \end{itemize}
 \end{enumerate}
 
-\task{Two-layer model}{20}
+\task{Two-layer model}{18}
 \begin{enumerate}[label=\alph*)]
-\item Implement the two-layer model using a prognostic equation for $\zeta$ at the $250$ and $750$ millibar level (assuming $p_\text{sfc}=const.=1000\,\mathrm{hPa}$)!
+\item In this task, we implement the two-layer model using a prognostic equation for $\zeta$ at the $250$ and $750$ millibar level (assuming $p_\text{sfc}=const.=1000\,\mathrm{hPa}$). Deviating from Holton's Eq. 8.15 and 8.16, we may obtain
+  \begin{eqnarray*}
+    \frac{\p (\nabla^2\psi_m)}{\p t} = 
+    -\left[\vec{u}_m \nabla\right] \nabla^2\psi_m - \left[{\vec{u}}_T\nabla\right] \nabla^2\psi_T - \beta \frac{\p \psi_m}{\p x}= 0\\
+ \frac{\p \left( \nabla^2 \psi_T - 2\lambda^2 \psi_T\right)}{\p t} =  -\left[ \vec{u}_m\nabla \right] \left( \nabla^2\psi_T - 2\lambda^2 \psi_T\right) - \left[\vec{u}_T \nabla \right] \left(\nabla^2\psi_m + 2\lambda^2\psi_m  \right) - \beta \frac{\p \psi_T}{\p x} = 0 
+  \end{eqnarray*}
+  \[\text{where} \ \vec{u}_m = \vec{U}_m + {\vec{u}'}_m = \begin{pmatrix} U_m\\0\end{pmatrix} + \begin{pmatrix}{u'}_m\\ {v'}_m\end{pmatrix} \quad \text{and} \quad \vec{u}_T = \vec{U}_T + {\vec{u}'}_T = \begin{pmatrix} U_T \\ 0 \end{pmatrix} + \begin{pmatrix} {u'}_T \\{v'}_T \end{pmatrix} \]
+  In this context, the prognostic variable for the second (baroclinic mode) equation is no longer $\nabla^2\psi_T$ but $\tilde{\zeta} = \nabla^2\psi_T - 2\lambda^2 \psi_T$. The variable $\psi_T$ (needed to obtain the perturbation velocities for the baroclinic mode and the beta effect is then obtain as a solution of a Helmholtz-type equation
+  \[\psi_T = \left[ \nabla^2 -2\lambda^2 \right]^{-1}  \tilde{\zeta}\].
+  In spectral space, this may be written as
+  \[ \hat{\psi}_T = -\frac{1}{ k^2 + \lambda^2 } \widehat{\tilde{\zeta}}\].
+  Proceed as follows with the implementation of the two-layer model:
+  \begin{itemize}
+  \item in analogy to the operator \texttt{poisson} in \texttt{utils.py}, define an operator \texttt{helmholtz} that takes an additional parameter \texttt{lambda} as argument and solves for the corresponding Helmholtz-type equation. Check the solution for accuracy with a harmonic field and $\lambda^2=1$.
+  \item implement the solution in the dummy routine \texttt{two\_layer} where $\zeta[0,:,:]$ corresponds to the barotropic mode and $\zeta[1,:,:]$ to the baroclinic mode, i.e. $\zeta[1,:,:] = \tilde{\zeta}$
+  \end{itemize} 
 \item Investigate the growth rate of a baroclinic instability!
-\item Analyze the terms of the Lorenz energy cycle!
-
+\item Analyze the terms of the Lorenz energy cycle that play a role for the baroclinic instability!
+\end{enumerate}
 
 \end{document}
