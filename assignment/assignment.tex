@@ -97,8 +97,24 @@ Check the time integration scheme implemented in the class \texttt{INTEGRATOR}. 
 \end{enumerate}
 
 \task{Rossby waves}{15}
+For this task, you need to use the \texttt{rhs} dummy routine \texttt{rossby} and the section \texttt{Rossby} in \texttt{qg.ini}
+\begin{enumerate}[label=\alph*)]
+\item Implement the barotropic vorticity equation
+  \[ \left[\frac{\p}{\p t} + \left(U_j + {u'}_j\right) \frac{\p}{\p x_j}\right] \nabla^2 \zeta - \beta v = 0 \]
+\item Investigate the behavior of waves for a \texttt{harmonic} initial perturbation! Can you prodcue standing waves? Give the parmaeter setting!
+\item Investigate the behavior of a \texttt{singular} perturbation!
+  \begin{itemize}
+  \item What do you observe?
+  \item How does the behavior differ from a harmonic initial condition?
+  \item Can you explain this?
+  \end{itemize}
+\end{enumerate}
 
+\task{Two-layer model}{20}
+\begin{enumerate}[label=\alph*)]
+\item Implement the two-layer model using a prognostic equation for $\zeta$ at the $250$ and $750$ millibar level (assuming $p_\text{sfc}=const.=1000\,\mathrm{hPa}$)!
+\item Investigate the growth rate of a baroclinic instability!
+\item Analyze the terms of the Lorenz energy cycle!
 
-\task{Two-layer model}{20} 
 
 \end{document}
